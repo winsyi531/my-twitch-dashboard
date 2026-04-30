@@ -264,9 +264,12 @@
             const toggleBtn = document.getElementById('toggle-chat-btn');
             toggleBtn.style.display = 'block';
             toggleBtn.innerText = '💬 關閉聊天';
-
+        
             document.getElementById('video-frame').src = `https://player.twitch.tv/?channel=${channel}&parent=winsyi531.github.io`;
             document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io&darkpopout`;
+            
+            // ⭐ 新增這行：將網頁分頁名稱改成實況主的 ID
+            document.title = `${channel} | Twitch 直立觀看台`;
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -299,6 +302,9 @@
             // 清空來源，讓影片和聊天室停止運作（節省資源）
             document.getElementById('video-frame').src = '';
             document.getElementById('chat-frame').src = '';
+            
+            // ⭐ 新增這行：把分頁名稱改回原本的首頁標題
+            document.title = 'Twitch 直立觀看台 (首頁儀表板版)';
             
             // 返回頂部並重新整理開台狀況
             window.scrollTo({ top: 0, behavior: 'smooth' });
