@@ -163,26 +163,36 @@
         const CLIENT_ID = 'p6qh37n16a7vomp2rufyaa3ak2a5wc'; 
         const REDIRECT_URI = 'https://winsyi531.github.io/my-twitch-dashboard/';
         // =========================================================================
-
+        
         let accessToken = localStorage.getItem('twitch_token');
-        let isChatVisible = true; // 追蹤聊天室狀態
-
-        // 檢查網址列是否帶有登入後回傳的 token
+        let isChatVisible = true; 
+        
+        // 1. 檢查登入回傳的 token
         const hash = window.location.hash;
         if (hash.includes('access_token=')) {
             accessToken = new URLSearchParams(hash.substring(1)).get('access_token');
             localStorage.setItem('twitch_token', accessToken);
-            // 清理網址列，讓畫面保持乾淨
-            history.replaceState(null, '', window.location.pathname);
+            // 清理網址列，讓畫面保持乾淨 (但保留 ?channel 等參數)
+            history.replaceState(null, '', window.location.pathname + window.location.search);
         }
-
-        // 程式啟動邏輯
+        
+        // 2. 程式啟動邏輯 (F5 重新整理時會跑到這裡)
         if (accessToken) {
             document.getElementById('login-section').style.display = 'none';
-            fetchLiveStreams();
+            
+            // ⭐ 讀取網址列看看有沒有 "?channel=頻道ID"
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetChannel = urlParams.get('channel');
+            
+            if (targetChannel) {
+                // 如果網址有紀錄頻道，直接進頻道 (傳入 true 代表是從網址載入的，不用再改寫一次網址)
+                openChannel(targetChannel, true);
+            } else {
+                // 如果沒有，就乖乖載入首頁
+                fetchLiveStreams();
+            }
         }
-
-        // 登入 Twitch，要求讀取追隨名單的權限
+        
         function loginTwitch() {
             if (CLIENT_ID === '這裡填入你的_CLIENT_ID') {
                 alert("請先在程式碼中填入你的 CLIENT_ID！");
@@ -191,24 +201,20 @@
             const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=user:read:follows`;
             window.location.href = authUrl;
         }
-
-        // 透過 API 取得你追隨且正在開台的清單
+        
         async function fetchLiveStreams() {
             try {
-                // 步驟 A: 用 Token 換取你自己的 User ID
                 const userRes = await fetch('https://api.twitch.tv/helix/users', {
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Client-Id': CLIENT_ID }
                 });
                 if (!userRes.ok) throw new Error('Token 可能過期了');
                 const userData = await userRes.json();
                 const userId = userData.data[0].id;
-
-                // 步驟 B: 用 User ID 查詢正在開台的追隨頻道
+        
                 const streamsRes = await fetch(`https://api.twitch.tv/helix/streams/followed?user_id=${userId}`, {
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Client-Id': CLIENT_ID }
                 });
                 const streamsData = await streamsRes.json();
-
                 renderGrid(streamsData.data);
             } catch (error) {
                 console.error("API 錯誤:", error);
@@ -217,15 +223,14 @@
                 document.getElementById('login-section').innerHTML += '<p style="color:red; margin-top:10px;">授權已過期，請重新登入</p>';
             }
         }
-
-        // 將拿到的 API 資料渲染成網格卡片
+        
         function renderGrid(streams) {
             const grid = document.getElementById('live-streams-grid');
             if (!streams || streams.length === 0) {
                 grid.innerHTML = '<h3 style="grid-column: 1 / -1; text-align: center; color: #adadb8; margin-top: 50px;">目前沒有追隨的實況主在線上 😴</h3>';
                 return;
             }
-
+        
             let html = '';
             streams.forEach(stream => {
                 const thumbnailUrl = stream.thumbnail_url.replace('{width}', '440').replace('{height}', '248');
@@ -243,24 +248,21 @@
             });
             grid.innerHTML = html;
         }
-
-        // 從卡片點擊或從輸入框搜尋進入頻道
+        
         function changeChannelFromInput() {
             const channel = document.getElementById('channelInput').value.trim().toLowerCase();
             if (channel) openChannel(channel);
         }
-
-        // 開啟直播與聊天室的 iframe
-        function openChannel(channel) {
+        
+        // ⭐ openChannel 多收一個參數 isFromUrl，避免陷入網址無限修改的迴圈
+        function openChannel(channel, isFromUrl = false) {
             document.getElementById('home-screen').style.display = 'none';
             
-            // 每次進入頻道時，預設顯示聊天室
             isChatVisible = true;
             document.getElementById('video-container').style.display = 'block';
             document.getElementById('video-container').style.height = 'calc(100vh - 60px)';
             document.getElementById('chat-container').style.display = 'block';
             
-            // 顯示「關閉聊天」按鈕
             const toggleBtn = document.getElementById('toggle-chat-btn');
             toggleBtn.style.display = 'block';
             toggleBtn.innerText = '💬 關閉聊天';
@@ -268,58 +270,73 @@
             document.getElementById('video-frame').src = `https://player.twitch.tv/?channel=${channel}&parent=winsyi531.github.io`;
             document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io&darkpopout`;
             
-            // ⭐ 新增這行：將網頁分頁名稱改成實況主的 ID
+            // ⭐ 修改分頁標籤名稱
             document.title = `${channel} | Twitch 直立觀看台`;
+        
+            // ⭐ 動態修改網址列，加上 ?channel=頻道名稱 (不重新載入網頁)
+            if (!isFromUrl) {
+                const newUrl = window.location.pathname + "?channel=" + channel;
+                history.pushState(null, '', newUrl);
+            }
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
-        // 切換聊天室顯示/隱藏
+        
         function toggleChat() {
             isChatVisible = !isChatVisible;
             const chatContainer = document.getElementById('chat-container');
             const videoContainer = document.getElementById('video-container');
             const toggleBtn = document.getElementById('toggle-chat-btn');
-
+        
             if (isChatVisible) {
                 chatContainer.style.display = 'block';
-                videoContainer.style.height = 'calc(100vh - 60px)'; // 恢復上方影片比例
+                videoContainer.style.height = 'calc(100vh - 60px)'; 
                 toggleBtn.innerText = '💬 關閉聊天';
             } else {
                 chatContainer.style.display = 'none';
-                videoContainer.style.height = '100vh'; // 讓影片撐滿整個螢幕
+                videoContainer.style.height = '100vh'; 
                 toggleBtn.innerText = '💬 開啟聊天';
             }
         }
-
-        // 返回首頁，並把 iframe 清空停止播放
-        function goHome() {
+        
+        // ⭐ goHome 也加入復原網址和標題的邏輯
+        function goHome(isFromBrowserBack = false) {
             document.getElementById('home-screen').style.display = 'block';
             document.getElementById('video-container').style.display = 'none';
             document.getElementById('chat-container').style.display = 'none';
-            document.getElementById('toggle-chat-btn').style.display = 'none'; // 隱藏聊天切換按鈕
+            document.getElementById('toggle-chat-btn').style.display = 'none'; 
             
-            // 清空來源，讓影片和聊天室停止運作（節省資源）
             document.getElementById('video-frame').src = '';
             document.getElementById('chat-frame').src = '';
             
-            // ⭐ 新增這行：把分頁名稱改回原本的首頁標題
+            // ⭐ 把分頁標題改回來
             document.title = 'Twitch 直立觀看台 (首頁儀表板版)';
+        
+            // ⭐ 把網址列後面的 ?channel 參數清掉，恢復乾淨網址
+            if (!isFromBrowserBack) {
+                history.pushState(null, '', window.location.pathname);
+            }
             
-            // 返回頂部並重新整理開台狀況
             window.scrollTo({ top: 0, behavior: 'smooth' });
             if (accessToken) fetchLiveStreams();
         }
-
+        
         function handleEnter(e) {
             if (e.key === 'Enter') changeChannelFromInput();
         }
-
-        // ==========================================
-        // 首頁背景自動更新 (每 3 分鐘更新一次追隨名單)
-        // ==========================================
+        
+        // 支援瀏覽器的「上一頁/下一頁」按鈕
+        window.addEventListener('popstate', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const channel = urlParams.get('channel');
+            if (channel) {
+                openChannel(channel, true);
+            } else {
+                goHome(true);
+            }
+        });
+        
         setInterval(() => {
-            // 只有在處於「首頁」狀態，且已登入有 token 的時候才自動更新
             if (document.getElementById('home-screen').style.display !== 'none' && accessToken) {
                 console.log('自動更新追隨名單...');
                 fetchLiveStreams();
