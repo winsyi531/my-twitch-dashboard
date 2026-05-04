@@ -11,13 +11,15 @@
     <style>
         /* 基礎歸零與深色背景 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
             background-color: #0e0e10;
             color: #efeff1;
             font-family: sans-serif;
-            overflow-x: hidden;
-            overflow-y: auto;
-            scroll-behavior: smooth;
+            /* ⭐ 禁止整個網頁的滾動條，防止畫面不經意跑掉 */
+            overflow: hidden; 
+            height: 100vh;
+            width: 100%;
         }
 
         /* 頂部控制列 */
@@ -26,23 +28,19 @@
             justify-content: space-between;
             align-items: center;
             padding: 0 15px;
-            background-color: #18181b;
+            background-color: rgba(24, 24, 27, 0.7); 
+            backdrop-filter: blur(12px);
             border-bottom: 1px solid #303032;
             height: 60px; 
-            position: sticky; 
-            top: 0;
+            position: relative; /* 改為 relative 因為 body 已經 hidden */
             z-index: 10000;
             flex-wrap: nowrap; 
-            background-color: rgba(24, 24, 27, 0.7); 
-            backdrop-filter: blur(12px); 
         }
 
-        /* 將控制列分為左、中、右三個區塊 */
         .left-controls { display: flex; gap: 10px; flex: 1; align-items: center; white-space: nowrap; }
         .center-controls { display: flex; gap: 15px; flex: 2; justify-content: center; align-items: center; white-space: nowrap; }
         .right-controls { display: flex; gap: 10px; flex: 1; justify-content: flex-end; align-items: center; white-space: nowrap; }
 
-        /* 統一按鈕與超連結的外觀 */
         .btn {
             display: inline-flex; 
             align-items: center;
@@ -67,11 +65,8 @@
         #home-btn { background-color: #3a3a3d; }
         #home-btn:hover { background-color: #555558; }
         #switcher-btn { background-color: #9146FF; }
-        #switcher-btn:hover { background-color: #a970ff; }
         #toggle-chat-btn { background-color: #3a3a3d; }
-        #toggle-chat-btn:hover { background-color: #555558; }
 
-        /* 酷炫發光標籤 */
         .cool-badge {
             display: inline-flex;
             align-items: center;
@@ -84,29 +79,17 @@
             border: 1px solid;
             flex-shrink: 0;
         }
-        .cool-badge i { font-size: 16px; }
+        .game-badge { background: rgba(145, 70, 255, 0.15); border-color: rgba(145, 70, 255, 0.6); color: #e5c3ff; box-shadow: 0 0 8px rgba(145, 70, 255, 0.3); }
+        .uptime-badge { background: rgba(235, 4, 0, 0.15); border-color: rgba(235, 4, 0, 0.6); color: #ffb3b2; box-shadow: 0 0 8px rgba(235, 4, 0, 0.3); }
 
-        .game-badge {
-            background: rgba(145, 70, 255, 0.15);
-            border-color: rgba(145, 70, 255, 0.6);
-            box-shadow: 0 0 8px rgba(145, 70, 255, 0.3);
-            color: #e5c3ff;
-        }
-        .uptime-badge {
-            background: rgba(235, 4, 0, 0.15);
-            border-color: rgba(235, 4, 0, 0.6);
-            box-shadow: 0 0 8px rgba(235, 4, 0, 0.3);
-            color: #ffb3b2;
-        }
-
-        /* 懸浮快速換台選單 */
         #quick-switcher-menu {
             position: fixed; 
             top: 60px; 
             left: 15px; 
             width: 300px;
             max-height: 60vh;
-            background-color: #18181b;
+            background-color: rgba(24, 24, 27, 0.8); 
+            backdrop-filter: blur(15px);
             border: 1px solid #464649;
             border-top: none;
             border-radius: 0 0 8px 8px;
@@ -115,8 +98,6 @@
             z-index: 99999;
             display: none; 
             flex-direction: column;
-            background-color: rgba(24, 24, 27, 0.7); 
-            backdrop-filter: blur(12px); 
         }
         .mini-card {
             display: flex;
@@ -127,18 +108,23 @@
             color: #efeff1;
             transition: background 0.2s;
         }
-        .mini-card:hover { background-color: #262629; border-left: 3px solid #9146FF; }
+        .mini-card:hover { background-color: rgba(145, 70, 255, 0.2); border-left: 3px solid #9146FF; }
         .mini-card img { width: 80px; border-radius: 4px; margin-right: 12px; aspect-ratio: 16/9; object-fit: cover; }
         .mini-info { flex: 1; overflow: hidden; }
         .mini-info h4 { font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .mini-info p { font-size: 12px; color: #adadb8; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
         .mini-viewers { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #eb0400; font-weight: bold; }
 
-        /* 首頁最後更新時間文字 */
+        /* 首頁追隨列表區塊 */
+        #home-screen { 
+            width: 100%; 
+            height: calc(100vh - 60px); 
+            padding: 30px; 
+            display: block; 
+            overflow-y: auto; /* ⭐ 只有這裡可以滾動 */
+        }
         #last-update-text { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #adadb8; white-space: nowrap; flex-shrink: 0; }
 
-        /* 首頁追隨列表區塊 (⭐ 寬度改為 100% 防裁切) */
-        #home-screen { width: 100%; min-height: calc(100vh - 60px); padding: 30px; display: block; }
         .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         .stream-card {
             background: #18181b; border-radius: 8px; overflow: hidden; cursor: pointer;
@@ -153,40 +139,45 @@
         .game-tag { display: inline-flex; align-items: center; gap: 4px; background-color: #3a3a3d; color: #efeff1; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-top: 8px; margin-right: 8px; }
         .viewer-count { display: inline-flex; align-items: center; gap: 4px; color: #eb0400 !important; font-weight: bold; margin-top: 8px; }
 
-        /* 影片區塊 (⭐ 寬度改為 100%，高度滿版) */
+        /* 影片區塊 */
         #video-container { 
             width: 100%; 
             height: calc(100vh - 60px); 
             background-color: #000; 
             display: none; 
+            overflow: hidden;
         }
 
-        /* 聊天室抽屜區塊 (⭐ 改成側邊滑出特效) */
+        /* 聊天室抽屜區塊 */
         #chat-container { 
             position: fixed;
             top: 60px;
             right: 0;
-            width: 350px; /* 聊天室的寬度 */
-            max-width: 90vw; /* 如果用手機看，確保不會爆出螢幕 */
+            width: 350px; 
+            max-width: 85vw; 
             height: calc(100vh - 60px); 
-            /* background-color: #0e0e10; */
             background-color: rgba(24, 24, 27, 0.7); 
             backdrop-filter: blur(12px);
             border-left: 1px solid #303032;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.8); /* 左側加陰影做出抽屜懸浮感 */
+            box-shadow: -10px 0 30px rgba(0,0,0,0.8); 
             z-index: 9999;
-            transform: translateX(100%); /* 預設往右推 100% 藏在螢幕外 */
-            transition: transform 0.3s ease-in-out; /* 滑動的動畫速度 */
+            transform: translateX(100%); 
+            transition: transform 0.3s ease-in-out; 
             display: none; 
         }
         
         iframe { width: 100%; height: 100%; border: none; }
         .login-wrapper { text-align: center; margin-top: 15vh; }
+
+        /* 捲軸美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3a3a3d; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9146FF; }
     </style>
 </head>
 <body>
 
-    <!-- 控制列 -->
     <div id="controls">
         <div class="left-controls">
             <a href="?" id="home-btn" class="btn" onclick="handleHomeClick(event)">
@@ -216,10 +207,8 @@
         </div>
     </div>
 
-    <!-- 懸浮快速換台選單 -->
     <div id="quick-switcher-menu"></div>
 
-    <!-- 首頁 -->
     <div id="home-screen">
         <div class="login-wrapper" id="login-section">
             <h2 style="margin-bottom: 20px;">需要授權才能讀取你的追隨名單</h2>
@@ -230,12 +219,10 @@
         <div id="live-streams-grid" class="grid-container"></div>
     </div>
 
-    <!-- 影片 -->
     <div id="video-container">
         <iframe id="video-frame" src="" allowfullscreen="true"></iframe>
     </div>
 
-    <!-- 聊天室 -->
     <div id="chat-container">
         <iframe id="chat-frame" src=""></iframe>
     </div>
@@ -247,8 +234,7 @@
         // =========================================================================
 
         let accessToken = localStorage.getItem('twitch_token');
-        let isChatVisible = false; // ⭐ 預設改為 false，給實況畫面最純淨的空間
-        
+        let isChatVisible = false; 
         let globalLiveStreams = []; 
         let currentStreamStartedAt = null; 
         let uptimeInterval = null; 
@@ -264,16 +250,14 @@
             document.getElementById('login-section').style.display = 'none';
             const urlParams = new URLSearchParams(window.location.search);
             const targetChannel = urlParams.get('channel');
-            
             fetchLiveStreams().then(() => {
                 if (targetChannel) openChannel(targetChannel, true);
             });
         }
 
         function loginTwitch() {
-            if (CLIENT_ID === '這裡填入你的_CLIENT_ID') return alert("請先在程式碼中填入你的 CLIENT_ID！");
-            const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=user:read:follows`;
-            window.location.href = authUrl;
+            if (CLIENT_ID === '這裡填入你的_CLIENT_ID') return alert("請設定 CLIENT_ID！");
+            window.location.href = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=user:read:follows`;
         }
 
         async function fetchLiveStreams() {
@@ -289,7 +273,6 @@
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Client-Id': CLIENT_ID }
                 });
                 const streamsData = await streamsRes.json();
-                
                 globalLiveStreams = streamsData.data; 
                 
                 renderGrid(globalLiveStreams);
@@ -306,7 +289,6 @@
                 console.error("API 錯誤:", error);
                 localStorage.removeItem('twitch_token');
                 document.getElementById('login-section').style.display = 'block';
-                document.getElementById('login-section').innerHTML += '<p style="color:red; margin-top:10px;">授權已過期，請重新登入</p>';
             }
         }
 
@@ -316,7 +298,6 @@
                 grid.innerHTML = '<h3 style="grid-column: 1 / -1; text-align: center; color: #adadb8; margin-top: 50px;">目前沒有追隨的實況主在線上 😴</h3>';
                 return;
             }
-
             let html = '';
             streams.forEach(stream => {
                 const thumbnailUrl = stream.thumbnail_url.replace('{width}', '440').replace('{height}', '248');
@@ -327,7 +308,7 @@
                             <h3>${stream.user_name}</h3>
                             <p>${stream.title}</p>
                             <span class="game-tag"><i class="ph-fill ph-game-controller"></i> ${stream.game_name || 'Just Chatting'}</span>
-                            <span class="viewer-count"><i class="ph-fill ph-users"></i> ${stream.viewer_count.toLocaleString()} 人正在觀看</span>
+                            <span class="viewer-count"><i class="ph-fill ph-users"></i> ${stream.viewer_count.toLocaleString()}</span>
                         </div>
                     </a>
                 `;
@@ -341,7 +322,6 @@
                 menu.innerHTML = '<div style="padding: 20px; text-align: center; color: #adadb8;">目前沒有人開台 😴</div>';
                 return;
             }
-
             let html = '';
             streams.forEach(stream => {
                 const thumbnailUrl = stream.thumbnail_url.replace('{width}', '160').replace('{height}', '90');
@@ -361,13 +341,8 @@
 
         function toggleSwitcher(event) {
             if(event) event.stopPropagation(); 
-            
             const menu = document.getElementById('quick-switcher-menu');
-            if (menu.style.display === 'none' || menu.style.display === '') {
-                menu.style.display = 'flex';
-            } else {
-                menu.style.display = 'none';
-            }
+            menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
         }
 
         document.addEventListener('click', function(event) {
@@ -395,120 +370,73 @@
         function openChannel(channel, isFromUrl = false) {
             document.getElementById('home-screen').style.display = 'none';
             document.getElementById('quick-switcher-menu').style.display = 'none'; 
-            
             document.getElementById('switcher-btn').style.display = 'flex';
             document.getElementById('stream-info-badges').style.display = 'flex';
-            
             document.getElementById('last-update-text').style.display = 'none'; 
             document.getElementById('toggle-chat-btn').style.display = 'flex';
             
-            // ⭐ 介面更新：預設讓聊天室隱藏在畫面右側外
             isChatVisible = false;
             document.getElementById('video-container').style.display = 'block';
             
             const chatContainer = document.getElementById('chat-container');
-            chatContainer.style.display = 'block'; // 讓它存在 DOM 裡
-            chatContainer.style.transform = 'translateX(100%)'; // 推到畫面外
+            chatContainer.style.display = 'block'; 
+            chatContainer.style.transform = 'translateX(100%)'; 
             
-            const toggleBtn = document.getElementById('toggle-chat-btn');
-            toggleBtn.innerHTML = '<i class="ph-fill ph-chat-teardrop-text"></i> 開啟聊天';
-
+            document.getElementById('toggle-chat-btn').innerHTML = '<i class="ph-fill ph-chat-teardrop-text"></i> 開啟聊天';
             document.getElementById('video-frame').src = `https://player.twitch.tv/?channel=${channel}&parent=winsyi531.github.io`;
             document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io&darkpopout`;
             
             const streamData = globalLiveStreams.find(s => s.user_login.toLowerCase() === channel.toLowerCase());
-            const displayName = streamData ? streamData.user_name : channel;
-            document.title = `${displayName} | Twitch 直立觀看台`;
+            document.title = `${streamData ? streamData.user_name : channel} | Twitch 直立觀看台`;
 
-            if (!isFromUrl) {
-                const newUrl = window.location.pathname + "?channel=" + channel;
-                history.pushState(null, '', newUrl);
-            }
-            
+            if (!isFromUrl) history.pushState(null, '', window.location.pathname + "?channel=" + channel);
             updateCurrentStreamBadges();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function updateCurrentStreamBadges() {
             const urlParams = new URLSearchParams(window.location.search);
             const channel = urlParams.get('channel');
             if (!channel) return;
-
             const streamData = globalLiveStreams.find(s => s.user_login.toLowerCase() === channel.toLowerCase());
-            const badgeGame = document.getElementById('badge-game');
-            const badgeUptime = document.getElementById('badge-uptime');
-
             if (streamData) {
-                badgeGame.innerHTML = `<i class="ph-fill ph-game-controller"></i> ${streamData.game_name || '無分類'}`;
+                document.getElementById('badge-game').innerHTML = `<i class="ph-fill ph-game-controller"></i> ${streamData.game_name || '無分類'}`;
                 currentStreamStartedAt = new Date(streamData.started_at);
                 calculateUptime(); 
-                
                 if(uptimeInterval) clearInterval(uptimeInterval);
                 uptimeInterval = setInterval(calculateUptime, 60000); 
-            } else {
-                badgeGame.innerHTML = `<i class="ph-fill ph-game-controller"></i> 隱藏或未開台`;
-                badgeUptime.innerHTML = `<i class="ph-fill ph-clock"></i> 未知`;
-                if(uptimeInterval) clearInterval(uptimeInterval);
             }
         }
 
         function calculateUptime() {
             if (!currentStreamStartedAt) return;
-            const now = new Date();
-            const diffMs = now - currentStreamStartedAt;
-            const diffMins = Math.floor(diffMs / 60000);
+            const diffMins = Math.floor((new Date() - currentStreamStartedAt) / 60000);
             const hours = Math.floor(diffMins / 60);
             const mins = diffMins % 60;
-            
-            const badgeUptime = document.getElementById('badge-uptime');
-            if (hours > 0) {
-                badgeUptime.innerHTML = `<i class="ph-fill ph-clock"></i> 已開播 ${hours} 小時 ${mins} 分`;
-            } else {
-                badgeUptime.innerHTML = `<i class="ph-fill ph-clock"></i> 已開播 ${mins} 分鐘`;
-            }
+            document.getElementById('badge-uptime').innerHTML = `<i class="ph-fill ph-clock"></i> 已開播 ${hours}時${mins}分`;
         }
 
-        // ⭐ 修正聊天室開關動畫邏輯
         function toggleChat() {
             isChatVisible = !isChatVisible;
             const chatContainer = document.getElementById('chat-container');
             const toggleBtn = document.getElementById('toggle-chat-btn');
-
-            if (isChatVisible) {
-                // 滑進畫面
-                chatContainer.style.transform = 'translateX(0)'; 
-                toggleBtn.innerHTML = '<i class="ph-fill ph-chat-teardrop-slash"></i> 關閉聊天';
-            } else {
-                // 滑出畫面
-                chatContainer.style.transform = 'translateX(100%)'; 
-                toggleBtn.innerHTML = '<i class="ph-fill ph-chat-teardrop-text"></i> 開啟聊天';
-            }
+            chatContainer.style.transform = isChatVisible ? 'translateX(0)' : 'translateX(100%)'; 
+            toggleBtn.innerHTML = isChatVisible ? '<i class="ph-fill ph-chat-teardrop-slash"></i> 關閉聊天' : '<i class="ph-fill ph-chat-teardrop-text"></i> 開啟聊天';
         }
 
         function goHome(isFromBrowserBack = false) {
             document.getElementById('home-screen').style.display = 'block';
             document.getElementById('video-container').style.display = 'none';
             document.getElementById('chat-container').style.display = 'none';
-            
             document.getElementById('switcher-btn').style.display = 'none';
             document.getElementById('stream-info-badges').style.display = 'none';
             document.getElementById('quick-switcher-menu').style.display = 'none';
-            
             document.getElementById('last-update-text').style.display = 'flex';
             document.getElementById('toggle-chat-btn').style.display = 'none'; 
-            
             if (uptimeInterval) clearInterval(uptimeInterval);
-            
             document.getElementById('video-frame').src = '';
             document.getElementById('chat-frame').src = '';
-            
-            document.title = 'Twitch 直立觀看台 (首頁儀表板版)';
-
-            if (!isFromBrowserBack) {
-                history.pushState(null, '', window.location.pathname);
-            }
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.title = 'Twitch 直立觀看台';
+            if (!isFromBrowserBack) history.pushState(null, '', window.location.pathname);
             if (accessToken) fetchLiveStreams();
         }
 
@@ -519,12 +447,7 @@
             else goHome(true);
         });
 
-        setInterval(() => {
-            if (accessToken) {
-                fetchLiveStreams();
-            }
-        }, 3 * 60 * 1000); 
-
+        setInterval(() => { if (accessToken) fetchLiveStreams(); }, 3 * 60 * 1000); 
     </script>
 </body>
 </html>
