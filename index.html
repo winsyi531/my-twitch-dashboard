@@ -33,7 +33,8 @@
             top: 0;
             z-index: 10000;
             flex-wrap: nowrap; 
-            /* 移除了 overflow-x: auto */
+            background-color: rgba(24, 24, 27, 0.7); /* 把原本的純色改成 70% 透明度 */
+            backdrop-filter: blur(12px); /* 加上這行魔法，背後的東西就會變模糊 */
         }
 
         /* 將控制列分為左、中、右三個區塊 */
@@ -114,6 +115,8 @@
             z-index: 99999;
             display: none; 
             flex-direction: column;
+            background-color: rgba(24, 24, 27, 0.7); /* 把原本的純色改成 70% 透明度 */
+            backdrop-filter: blur(12px); /* 加上這行魔法，背後的東西就會變模糊 */
         }
         .mini-card {
             display: flex;
