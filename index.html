@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitch 直立觀看台</title>
+    <title>Twitch 直立觀看台 (高級圖示版)</title>
+    
+    <!-- ⭐ 引入 Phosphor Icons (這個就是圖示的魔法庫) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
     <style>
         /* 基礎歸零與深色背景 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,7 +20,7 @@
             scroll-behavior: smooth;
         }
 
-        /* 頂部控制列 (加入吸頂效果，絕對不換行) */
+        /* 頂部控制列 */
         #controls {
             display: flex;
             justify-content: space-between;
@@ -29,18 +33,19 @@
             top: 0;
             z-index: 10000;
             flex-wrap: nowrap; 
-            background-color: rgba(24, 24, 27, 0.7); /* 把原本的純色改成 70% 透明度 */
-            backdrop-filter: blur(12px); /* 加上這行魔法，背後的東西就會變模糊 */
+            /* 移除了 overflow-x: auto */
         }
 
-        /* 將控制列分為左、中、右三個區塊，完美置中對齊 */
+        /* 將控制列分為左、中、右三個區塊 */
         .left-controls { display: flex; gap: 10px; flex: 1; align-items: center; white-space: nowrap; }
         .center-controls { display: flex; gap: 15px; flex: 2; justify-content: center; align-items: center; white-space: nowrap; }
         .right-controls { display: flex; gap: 10px; flex: 1; justify-content: flex-end; align-items: center; white-space: nowrap; }
 
         /* 統一按鈕與超連結的外觀 */
         .btn {
-            display: inline-block;
+            display: inline-flex; /* ⭐ 改成 inline-flex 讓圖示跟文字完美垂直置中 */
+            align-items: center;
+            gap: 6px; /* 圖示跟文字之間的距離 */
             padding: 8px 16px;
             background-color: #9146FF;
             color: white;
@@ -48,14 +53,15 @@
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 15px;
+            font-size: 14px;
             text-decoration: none; 
             transition: background-color 0.2s;
             line-height: normal;
             white-space: nowrap; 
-            flex-shrink: 0; /* 防止按鈕被過度擠壓 */
+            flex-shrink: 0;
         }
         .btn:hover { background-color: #a970ff; }
+        .btn i { font-size: 18px; } /* 微調圖示大小 */
         
         #home-btn { background-color: #3a3a3d; }
         #home-btn:hover { background-color: #555558; }
@@ -68,6 +74,7 @@
         .cool-badge {
             display: inline-flex;
             align-items: center;
+            gap: 5px;
             padding: 5px 14px;
             border-radius: 20px;
             font-size: 13px;
@@ -76,6 +83,8 @@
             border: 1px solid;
             flex-shrink: 0;
         }
+        .cool-badge i { font-size: 16px; }
+
         .game-badge {
             background: rgba(145, 70, 255, 0.15);
             border-color: rgba(145, 70, 255, 0.6);
@@ -89,23 +98,22 @@
             color: #ffb3b2;
         }
 
-        /* 懸浮快速換台選單 (Dropdown) */
+        /* 懸浮快速換台選單 */
         #quick-switcher-menu {
-            position: absolute;
+            position: fixed; /* 獨立懸浮層 */
             top: 60px; 
-            left: 15px; /* 對齊左側按鈕群 */
+            left: 15px; 
             width: 300px;
             max-height: 60vh;
             background-color: #18181b;
             border: 1px solid #464649;
+            border-top: none;
             border-radius: 0 0 8px 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.9);
             overflow-y: auto;
-            z-index: 10001;
+            z-index: 99999;
             display: none; 
             flex-direction: column;
-            background-color: rgba(24, 24, 27, 0.7); /* 把原本的純色改成 70% 透明度 */
-            backdrop-filter: blur(12px); /* 加上這行魔法，背後的東西就會變模糊 */
         }
         .mini-card {
             display: flex;
@@ -121,10 +129,10 @@
         .mini-info { flex: 1; overflow: hidden; }
         .mini-info h4 { font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .mini-info p { font-size: 12px; color: #adadb8; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
-        .mini-viewers { font-size: 12px; color: #eb0400; font-weight: bold; }
+        .mini-viewers { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #eb0400; font-weight: bold; }
 
         /* 首頁最後更新時間文字 */
-        #last-update-text { font-size: 13px; color: #adadb8; white-space: nowrap; flex-shrink: 0; }
+        #last-update-text { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #adadb8; white-space: nowrap; flex-shrink: 0; }
 
         /* 首頁追隨列表區塊 */
         #home-screen { width: 100vw; min-height: calc(100vh - 60px); padding: 30px; display: block; }
@@ -139,8 +147,8 @@
         .card-info { padding: 15px; }
         .card-info h3 { margin-bottom: 5px; font-size: 18px; }
         .card-info p { color: #adadb8; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .game-tag { display: inline-block; background-color: #3a3a3d; color: #efeff1; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-top: 8px; margin-right: 8px; }
-        .viewer-count { color: #eb0400 !important; font-weight: bold; margin-top: 8px; display: inline-block;}
+        .game-tag { display: inline-flex; align-items: center; gap: 4px; background-color: #3a3a3d; color: #efeff1; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-top: 8px; margin-right: 8px; }
+        .viewer-count { display: inline-flex; align-items: center; gap: 4px; color: #eb0400 !important; font-weight: bold; margin-top: 8px; }
 
         /* 影片與聊天室區塊 */
         #video-container { width: 100vw; height: calc(100vh - 60px); background-color: #000; display: none; transition: height 0.3s ease; }
@@ -153,34 +161,45 @@
 
     <!-- 控制列 -->
     <div id="controls">
-        <!-- 左側：回首頁 & 其他開台清單 -->
         <div class="left-controls">
-            <a href="?" id="home-btn" class="btn" onclick="handleHomeClick(event)">🏠 回首頁</a>
-            <button id="switcher-btn" class="btn" onclick="toggleSwitcher(event)" style="display: none;">🔴 其他開台清單 ▾</button>
+            <!-- 替換成 Phosphor Icon 的語法 -->
+            <a href="?" id="home-btn" class="btn" onclick="handleHomeClick(event)">
+                <i class="ph-fill ph-house"></i> 回首頁
+            </a>
+            <button id="switcher-btn" class="btn" onclick="toggleSwitcher(event)" style="display: none;">
+                <i class="ph-fill ph-monitor-play"></i> 其他開台清單 <i class="ph-bold ph-caret-down"></i>
+            </button>
         </div>
 
-        <!-- 中間：酷炫字卡 (僅在實況畫面顯示，自動置中) -->
         <div class="center-controls" id="stream-info-badges" style="display: none;">
-            <span class="cool-badge game-badge" id="badge-game">🎮 載入中</span>
-            <span class="cool-badge uptime-badge" id="badge-uptime">⏱️ 計算中</span>
+            <span class="cool-badge game-badge" id="badge-game">
+                <i class="ph-fill ph-game-controller"></i> 載入中
+            </span>
+            <span class="cool-badge uptime-badge" id="badge-uptime">
+                <i class="ph-fill ph-clock"></i> 計算中
+            </span>
         </div>
 
-        <!-- 右側：最後更新時間 OR 關閉聊天按鈕 -->
         <div class="right-controls">
-            <span id="last-update-text">🔄 尚未更新</span>
-            <!-- 關閉聊天按鈕乖乖待在右側 -->
-            <button id="toggle-chat-btn" class="btn" onclick="toggleChat()" style="display: none;">💬 關閉聊天</button>
+            <span id="last-update-text">
+                <i class="ph-bold ph-arrows-clockwise"></i> 尚未更新
+            </span>
+            <button id="toggle-chat-btn" class="btn" onclick="toggleChat()" style="display: none;">
+                <i class="ph-fill ph-chat-teardrop-slash"></i> 關閉聊天
+            </button>
         </div>
-
-        <!-- 懸浮快速換台選單 -->
-        <div id="quick-switcher-menu"></div>
     </div>
+
+    <!-- 懸浮快速換台選單 -->
+    <div id="quick-switcher-menu"></div>
 
     <!-- 首頁 -->
     <div id="home-screen">
         <div class="login-wrapper" id="login-section">
             <h2 style="margin-bottom: 20px;">需要授權才能讀取你的追隨名單</h2>
-            <button class="btn" onclick="loginTwitch()">連結 Twitch 帳號</button>
+            <button class="btn" onclick="loginTwitch()">
+                <i class="ph-fill ph-twitch-logo"></i> 連結 Twitch 帳號
+            </button>
         </div>
         <div id="live-streams-grid" class="grid-container"></div>
     </div>
@@ -252,7 +271,8 @@
                 
                 const now = new Date();
                 const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-                document.getElementById('last-update-text').innerText = `🔄 最後更新於 ${timeStr}`;
+                // ⭐ JS 修改內容時，改用 innerHTML 來塞入 icon 標籤
+                document.getElementById('last-update-text').innerHTML = `<i class="ph-bold ph-arrows-clockwise"></i> 最後更新於 ${timeStr}`;
 
                 if (document.getElementById('video-container').style.display === 'block') {
                     updateCurrentStreamBadges();
@@ -281,8 +301,8 @@
                         <div class="card-info">
                             <h3>${stream.user_name}</h3>
                             <p>${stream.title}</p>
-                            <span class="game-tag">🎮 ${stream.game_name || 'Just Chatting'}</span>
-                            <span class="viewer-count">🔴 ${stream.viewer_count.toLocaleString()} 人正在觀看</span>
+                            <span class="game-tag"><i class="ph-fill ph-game-controller"></i> ${stream.game_name || 'Just Chatting'}</span>
+                            <span class="viewer-count"><i class="ph-fill ph-users"></i> ${stream.viewer_count.toLocaleString()} 人正在觀看</span>
                         </div>
                     </a>
                 `;
@@ -306,7 +326,7 @@
                         <div class="mini-info">
                             <h4>${stream.user_name}</h4>
                             <p>${stream.game_name || 'Just Chatting'}</p>
-                            <span class="mini-viewers">🔴 ${stream.viewer_count.toLocaleString()}</span>
+                            <span class="mini-viewers"><i class="ph-fill ph-users"></i> ${stream.viewer_count.toLocaleString()}</span>
                         </div>
                     </a>
                 `;
@@ -314,14 +334,8 @@
             menu.innerHTML = html;
         }
 
-        // ==========================================
-        // ⭐ 下拉選單開關與防呆邏輯
-        // ==========================================
         function toggleSwitcher(event) {
-            // 阻擋事件冒泡，保護選單不被 document 的點擊事件秒殺
-            if (event && typeof event.stopPropagation === 'function') {
-                event.stopPropagation(); 
-            }
+            if(event) event.stopPropagation(); 
             
             const menu = document.getElementById('quick-switcher-menu');
             if (menu.style.display === 'none' || menu.style.display === '') {
@@ -341,9 +355,6 @@
             }
         });
 
-        // ==========================================
-        // 處理滑鼠左鍵/中鍵點擊的邏輯
-        // ==========================================
         function handleHomeClick(e) {
             if (e.ctrlKey || e.metaKey || e.button === 1) return; 
             e.preventDefault(); 
@@ -356,19 +367,15 @@
             openChannel(channel);
         }
 
-        // ==========================================
-
         function openChannel(channel, isFromUrl = false) {
             document.getElementById('home-screen').style.display = 'none';
             document.getElementById('quick-switcher-menu').style.display = 'none'; 
             
-            // ⭐ 介面顯示切換
-            document.getElementById('switcher-btn').style.display = 'block';
+            document.getElementById('switcher-btn').style.display = 'flex';
             document.getElementById('stream-info-badges').style.display = 'flex';
             
-            // 隱藏「更新時間」，顯示「關閉聊天」按鈕
             document.getElementById('last-update-text').style.display = 'none'; 
-            document.getElementById('toggle-chat-btn').style.display = 'block';
+            document.getElementById('toggle-chat-btn').style.display = 'flex';
             
             isChatVisible = true;
             document.getElementById('video-container').style.display = 'block';
@@ -376,11 +383,13 @@
             document.getElementById('chat-container').style.display = 'block';
             
             const toggleBtn = document.getElementById('toggle-chat-btn');
-            toggleBtn.innerText = '💬 關閉聊天';
+            // ⭐ 改為 innerHTML 放入動態 icon
+            toggleBtn.innerHTML = '<i class="ph-fill ph-chat-teardrop-slash"></i> 關閉聊天';
 
             document.getElementById('video-frame').src = `https://player.twitch.tv/?channel=${channel}&parent=winsyi531.github.io`;
             document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io&darkpopout`;
             
+            // ⭐ 你上一版要的「分頁標題改成實況主顯示名稱」邏輯
             const streamData = globalLiveStreams.find(s => s.user_login.toLowerCase() === channel.toLowerCase());
             const displayName = streamData ? streamData.user_name : channel;
             document.title = `${displayName} | Twitch 直立觀看台`;
@@ -404,15 +413,15 @@
             const badgeUptime = document.getElementById('badge-uptime');
 
             if (streamData) {
-                badgeGame.innerText = `🎮 ${streamData.game_name || '無分類'}`;
+                badgeGame.innerHTML = `<i class="ph-fill ph-game-controller"></i> ${streamData.game_name || '無分類'}`;
                 currentStreamStartedAt = new Date(streamData.started_at);
                 calculateUptime(); 
                 
                 if(uptimeInterval) clearInterval(uptimeInterval);
                 uptimeInterval = setInterval(calculateUptime, 60000); 
             } else {
-                badgeGame.innerText = `🎮 隱藏或未開台`;
-                badgeUptime.innerText = `⏱️ 未知`;
+                badgeGame.innerHTML = `<i class="ph-fill ph-game-controller"></i> 隱藏或未開台`;
+                badgeUptime.innerHTML = `<i class="ph-fill ph-clock"></i> 未知`;
                 if(uptimeInterval) clearInterval(uptimeInterval);
             }
         }
@@ -427,9 +436,9 @@
             
             const badgeUptime = document.getElementById('badge-uptime');
             if (hours > 0) {
-                badgeUptime.innerText = `⏱️ 已開播 ${hours} 小時 ${mins} 分`;
+                badgeUptime.innerHTML = `<i class="ph-fill ph-clock"></i> 已開播 ${hours} 小時 ${mins} 分`;
             } else {
-                badgeUptime.innerText = `⏱️ 已開播 ${mins} 分鐘`;
+                badgeUptime.innerHTML = `<i class="ph-fill ph-clock"></i> 已開播 ${mins} 分鐘`;
             }
         }
 
@@ -442,11 +451,11 @@
             if (isChatVisible) {
                 chatContainer.style.display = 'block';
                 videoContainer.style.height = 'calc(100vh - 60px)'; 
-                toggleBtn.innerText = '💬 關閉聊天';
+                toggleBtn.innerHTML = '<i class="ph-fill ph-chat-teardrop-slash"></i> 關閉聊天';
             } else {
                 chatContainer.style.display = 'none';
                 videoContainer.style.height = '100vh'; 
-                toggleBtn.innerText = '💬 開啟聊天';
+                toggleBtn.innerHTML = '<i class="ph-fill ph-chat-teardrop-text"></i> 開啟聊天';
             }
         }
 
@@ -455,12 +464,11 @@
             document.getElementById('video-container').style.display = 'none';
             document.getElementById('chat-container').style.display = 'none';
             
-            // ⭐ 介面還原邏輯
             document.getElementById('switcher-btn').style.display = 'none';
             document.getElementById('stream-info-badges').style.display = 'none';
             document.getElementById('quick-switcher-menu').style.display = 'none';
             
-            document.getElementById('last-update-text').style.display = 'inline-block';
+            document.getElementById('last-update-text').style.display = 'flex';
             document.getElementById('toggle-chat-btn').style.display = 'none'; 
             
             if (uptimeInterval) clearInterval(uptimeInterval);
