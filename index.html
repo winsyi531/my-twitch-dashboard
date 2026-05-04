@@ -25,7 +25,7 @@
             gap: 10px;
             height: 60px; 
             align-items: center;
-            position: sticky; /* 往下滾動時固定在最上方 */
+            position: sticky; 
             top: 0;
             z-index: 10000;
         }
@@ -38,7 +38,10 @@
             color: #fff;
             font-size: 16px;
         }
-        button {
+        
+        /* 統一按鈕與超連結的外觀 */
+        .btn {
+            display: inline-block;
             padding: 8px 16px;
             background-color: #9146FF;
             color: white;
@@ -47,11 +50,12 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 16px;
+            text-decoration: none; /* 去除超連結底線 */
             transition: background-color 0.2s;
+            line-height: normal;
         }
-        button:hover { background-color: #a970ff; }
+        .btn:hover { background-color: #a970ff; }
         
-        /* 回首頁與功能按鈕的特別樣式 */
         #home-btn { background-color: #3a3a3d; }
         #home-btn:hover { background-color: #555558; }
         #toggle-chat-btn { background-color: #3a3a3d; }
@@ -78,6 +82,9 @@
             cursor: pointer;
             transition: transform 0.2s;
             border: 1px solid transparent;
+            text-decoration: none; /* 改成超連結後去除底線 */
+            color: inherit; /* 避免文字變成超連結的藍色 */
+            display: block;
         }
         .stream-card:hover {
             transform: translateY(-5px);
@@ -105,26 +112,24 @@
         }
         .viewer-count { color: #eb0400 !important; font-weight: bold; margin-top: 8px; display: inline-block;}
 
-        /* 第一屏：影片區塊 (預設隱藏) */
+        /* 影片區塊 */
         #video-container {
             width: 100vw;
-            height: calc(100vh - 60px); /* 扣掉頂部控制列，佔滿畫面 */
+            height: calc(100vh - 60px);
             background-color: #000;
             display: none;
-            transition: height 0.3s ease; /* 縮放時加入一點動畫感 */
+            transition: height 0.3s ease;
         }
         
-        /* 第二屏：聊天室區塊 (預設隱藏) */
+        /* 聊天室區塊 */
         #chat-container {
             width: 100vw;
-            height: 100vh; /* 完整一整個螢幕的高度 */
+            height: 100vh;
             border-top: 2px solid #9146FF;
             display: none;
         }
 
         iframe { width: 100%; height: 100%; border: none; }
-        
-        /* 登入畫面置中 */
         .login-wrapper { text-align: center; margin-top: 15vh; }
     </style>
 </head>
@@ -132,18 +137,22 @@
 
     <!-- 控制列 -->
     <div id="controls">
-        <button id="home-btn" onclick="goHome()">🏠 回首頁</button>
+        <!-- ⭐ 把回首頁改成 <a> 標籤，擁有原生的 href="?" -->
+        <a href="?" id="home-btn" class="btn" onclick="handleHomeClick(event)">🏠 回首頁</a>
+        
         <input type="text" id="channelInput" placeholder="直接輸入 ID 搜尋" onkeypress="handleEnter(event)">
-        <button onclick="changeChannelFromInput()">前往頻道</button>
-        <!-- 一鍵開關聊天室的按鈕 (預設隱藏) -->
-        <button id="toggle-chat-btn" onclick="toggleChat()" style="display: none;">💬 關閉聊天</button>
+        
+        <!-- ⭐ 前往頻道按鈕：加上 onauxclick 監聽滑鼠中鍵 -->
+        <button class="btn" onclick="handleInputClick(event)" onauxclick="handleInputClick(event)">前往頻道</button>
+        
+        <button id="toggle-chat-btn" class="btn" onclick="toggleChat()" style="display: none;">💬 關閉聊天</button>
     </div>
 
-    <!-- 首頁：顯示追隨名單 -->
+    <!-- 首頁 -->
     <div id="home-screen">
         <div class="login-wrapper" id="login-section">
             <h2 style="margin-bottom: 20px;">需要授權才能讀取你的追隨名單</h2>
-            <button onclick="loginTwitch()">連結 Twitch 帳號</button>
+            <button class="btn" onclick="loginTwitch()">連結 Twitch 帳號</button>
         </div>
         <div id="live-streams-grid" class="grid-container"></div>
     </div>
@@ -163,36 +172,28 @@
         const CLIENT_ID = 'p6qh37n16a7vomp2rufyaa3ak2a5wc'; 
         const REDIRECT_URI = 'https://winsyi531.github.io/my-twitch-dashboard/';
         // =========================================================================
-        
+
         let accessToken = localStorage.getItem('twitch_token');
         let isChatVisible = true; 
-        
-        // 1. 檢查登入回傳的 token
+
+        // 檢查網址列是否帶有登入後回傳的 token
         const hash = window.location.hash;
         if (hash.includes('access_token=')) {
             accessToken = new URLSearchParams(hash.substring(1)).get('access_token');
             localStorage.setItem('twitch_token', accessToken);
-            // 清理網址列，讓畫面保持乾淨 (但保留 ?channel 等參數)
             history.replaceState(null, '', window.location.pathname + window.location.search);
         }
-        
-        // 2. 程式啟動邏輯 (F5 重新整理時會跑到這裡)
+
+        // 程式啟動邏輯
         if (accessToken) {
             document.getElementById('login-section').style.display = 'none';
-            
-            // ⭐ 讀取網址列看看有沒有 "?channel=頻道ID"
             const urlParams = new URLSearchParams(window.location.search);
             const targetChannel = urlParams.get('channel');
             
-            if (targetChannel) {
-                // 如果網址有紀錄頻道，直接進頻道 (傳入 true 代表是從網址載入的，不用再改寫一次網址)
-                openChannel(targetChannel, true);
-            } else {
-                // 如果沒有，就乖乖載入首頁
-                fetchLiveStreams();
-            }
+            if (targetChannel) openChannel(targetChannel, true);
+            else fetchLiveStreams();
         }
-        
+
         function loginTwitch() {
             if (CLIENT_ID === '這裡填入你的_CLIENT_ID') {
                 alert("請先在程式碼中填入你的 CLIENT_ID！");
@@ -201,7 +202,7 @@
             const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=user:read:follows`;
             window.location.href = authUrl;
         }
-        
+
         async function fetchLiveStreams() {
             try {
                 const userRes = await fetch('https://api.twitch.tv/helix/users', {
@@ -210,7 +211,7 @@
                 if (!userRes.ok) throw new Error('Token 可能過期了');
                 const userData = await userRes.json();
                 const userId = userData.data[0].id;
-        
+
                 const streamsRes = await fetch(`https://api.twitch.tv/helix/streams/followed?user_id=${userId}`, {
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Client-Id': CLIENT_ID }
                 });
@@ -223,19 +224,20 @@
                 document.getElementById('login-section').innerHTML += '<p style="color:red; margin-top:10px;">授權已過期，請重新登入</p>';
             }
         }
-        
+
         function renderGrid(streams) {
             const grid = document.getElementById('live-streams-grid');
             if (!streams || streams.length === 0) {
                 grid.innerHTML = '<h3 style="grid-column: 1 / -1; text-align: center; color: #adadb8; margin-top: 50px;">目前沒有追隨的實況主在線上 😴</h3>';
                 return;
             }
-        
+
             let html = '';
             streams.forEach(stream => {
                 const thumbnailUrl = stream.thumbnail_url.replace('{width}', '440').replace('{height}', '248');
+                // ⭐ 卡片改成 <a href="..."> 標籤
                 html += `
-                    <div class="stream-card" onclick="openChannel('${stream.user_login}')">
+                    <a href="?channel=${stream.user_login}" class="stream-card" onclick="handleCardClick(event, '${stream.user_login}')">
                         <img src="${thumbnailUrl}" alt="${stream.user_name}">
                         <div class="card-info">
                             <h3>${stream.user_name}</h3>
@@ -243,18 +245,59 @@
                             <span class="game-tag">🎮 ${stream.game_name || 'Just Chatting'}</span>
                             <span class="viewer-count">🔴 ${stream.viewer_count.toLocaleString()} 人正在觀看</span>
                         </div>
-                    </div>
+                    </a>
                 `;
             });
             grid.innerHTML = html;
         }
-        
-        function changeChannelFromInput() {
-            const channel = document.getElementById('channelInput').value.trim().toLowerCase();
-            if (channel) openChannel(channel);
+
+        // ==========================================
+        // ⭐ 新增：處理滑鼠左鍵/中鍵點擊的邏輯
+        // ==========================================
+
+        // 處理「回首頁」點擊
+        function handleHomeClick(e) {
+            // 如果按住 Ctrl/Cmd 或是按滑鼠中鍵 (button === 1)，放行給瀏覽器開新分頁
+            if (e.ctrlKey || e.metaKey || e.button === 1) return; 
+            
+            e.preventDefault(); // 攔截左鍵，不重新載入網頁
+            goHome();
         }
-        
-        // ⭐ openChannel 多收一個參數 isFromUrl，避免陷入網址無限修改的迴圈
+
+        // 處理首頁「實況卡片」點擊
+        function handleCardClick(e, channel) {
+            if (e.ctrlKey || e.metaKey || e.button === 1) return;
+            
+            e.preventDefault();
+            openChannel(channel);
+        }
+
+        // 處理「前往頻道」點擊
+        function handleInputClick(e) {
+            const channel = document.getElementById('channelInput').value.trim().toLowerCase();
+            if (!channel) return;
+
+            // 確保如果是 auxclick 事件，必須是中鍵 (button === 1) 才觸發
+            if (e.type === 'auxclick' && e.button !== 1) return;
+
+            // 如果是中鍵或按住 Ctrl/Cmd
+            if (e.button === 1 || e.ctrlKey || e.metaKey) {
+                // 手動呼叫 window.open 開新分頁
+                window.open(window.location.pathname + "?channel=" + channel, '_blank');
+            } else {
+                openChannel(channel);
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') {
+                const channel = document.getElementById('channelInput').value.trim().toLowerCase();
+                if (channel) openChannel(channel);
+            }
+        }
+
+        // ==========================================
+
         function openChannel(channel, isFromUrl = false) {
             document.getElementById('home-screen').style.display = 'none';
             
@@ -266,14 +309,12 @@
             const toggleBtn = document.getElementById('toggle-chat-btn');
             toggleBtn.style.display = 'block';
             toggleBtn.innerText = '💬 關閉聊天';
-        
+
             document.getElementById('video-frame').src = `https://player.twitch.tv/?channel=${channel}&parent=winsyi531.github.io`;
             document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io&darkpopout`;
             
-            // ⭐ 修改分頁標籤名稱
             document.title = `${channel} | Twitch 直立觀看台`;
-        
-            // ⭐ 動態修改網址列，加上 ?channel=頻道名稱 (不重新載入網頁)
+
             if (!isFromUrl) {
                 const newUrl = window.location.pathname + "?channel=" + channel;
                 history.pushState(null, '', newUrl);
@@ -281,13 +322,13 @@
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        
+
         function toggleChat() {
             isChatVisible = !isChatVisible;
             const chatContainer = document.getElementById('chat-container');
             const videoContainer = document.getElementById('video-container');
             const toggleBtn = document.getElementById('toggle-chat-btn');
-        
+
             if (isChatVisible) {
                 chatContainer.style.display = 'block';
                 videoContainer.style.height = 'calc(100vh - 60px)'; 
@@ -298,8 +339,7 @@
                 toggleBtn.innerText = '💬 開啟聊天';
             }
         }
-        
-        // ⭐ goHome 也加入復原網址和標題的邏輯
+
         function goHome(isFromBrowserBack = false) {
             document.getElementById('home-screen').style.display = 'block';
             document.getElementById('video-container').style.display = 'none';
@@ -309,10 +349,8 @@
             document.getElementById('video-frame').src = '';
             document.getElementById('chat-frame').src = '';
             
-            // ⭐ 把分頁標題改回來
             document.title = 'Twitch 直立觀看台 (首頁儀表板版)';
-        
-            // ⭐ 把網址列後面的 ?channel 參數清掉，恢復乾淨網址
+
             if (!isFromBrowserBack) {
                 history.pushState(null, '', window.location.pathname);
             }
@@ -320,22 +358,14 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
             if (accessToken) fetchLiveStreams();
         }
-        
-        function handleEnter(e) {
-            if (e.key === 'Enter') changeChannelFromInput();
-        }
-        
-        // 支援瀏覽器的「上一頁/下一頁」按鈕
+
         window.addEventListener('popstate', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const channel = urlParams.get('channel');
-            if (channel) {
-                openChannel(channel, true);
-            } else {
-                goHome(true);
-            }
+            if (channel) openChannel(channel, true);
+            else goHome(true);
         });
-        
+
         setInterval(() => {
             if (document.getElementById('home-screen').style.display !== 'none' && accessToken) {
                 console.log('自動更新追隨名單...');
