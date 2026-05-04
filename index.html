@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitch 直立觀看台 (首頁儀表板版)</title>
+    <title>Twitch 直立觀看台 (終極下拉選單版)</title>
     <style>
         /* 基礎歸零與深色背景 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11,154 +11,191 @@
             background-color: #0e0e10;
             color: #efeff1;
             font-family: sans-serif;
-            overflow-x: hidden;
-            overflow-y: auto;
-            scroll-behavior: smooth;
+            overflow: hidden; /* 徹底鎖死滾動，依賴內部容器 */
         }
 
-        /* 頂部控制列 (加入吸頂效果) */
+        /* 頂部控制列 (維持 60px，使用 Flexbox 三等分排版) */
         #controls {
             display: flex;
-            padding: 10px;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
             background-color: #18181b;
             border-bottom: 1px solid #303032;
-            gap: 10px;
             height: 60px; 
-            align-items: center;
-            position: sticky; 
-            top: 0;
+            position: relative;
             z-index: 10000;
         }
-        #controls input {
+
+        /* 左側：按鈕區 */
+        .left-controls {
+            display: flex;
+            gap: 10px;
             flex: 1;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #555;
-            background: #000;
-            color: #fff;
-            font-size: 16px;
         }
-        
-        /* 統一按鈕與超連結的外觀 */
+
+        /* 中間：酷炫標籤區 */
+        .center-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex: 2;
+            opacity: 0; /* 預設隱藏，進台後顯示 */
+            transition: opacity 0.3s;
+        }
+
+        /* 右側：更新時間 */
+        .right-controls {
+            display: flex;
+            justify-content: flex-end;
+            flex: 1;
+            font-size: 13px;
+            color: #adadb8;
+        }
+
+        /* 統一按鈕外觀 */
         .btn {
             display: inline-block;
             padding: 8px 16px;
-            background-color: #9146FF;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 16px;
-            text-decoration: none; /* 去除超連結底線 */
-            transition: background-color 0.2s;
-            line-height: normal;
+            font-size: 15px;
+            text-decoration: none;
+            transition: background-color 0.2s, transform 0.1s;
         }
-        .btn:hover { background-color: #a970ff; }
+        .btn:active { transform: scale(0.95); }
         
-        #home-btn { background-color: #3a3a3d; }
-        #home-btn:hover { background-color: #555558; }
+        #switcher-btn { background-color: #9146FF; }
+        #switcher-btn:hover { background-color: #a970ff; }
         #toggle-chat-btn { background-color: #3a3a3d; }
         #toggle-chat-btn:hover { background-color: #555558; }
 
-        /* 首頁追隨列表區塊 */
-        #home-screen {
-            width: 100vw;
-            min-height: calc(100vh - 60px);
-            padding: 30px;
-            display: block; 
+        /* 酷炫發光標籤 (分類 & 開台時長) */
+        .cool-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: 1px solid;
+        }
+        /* 遊戲分類：科技紫光 */
+        .game-badge {
+            background: rgba(145, 70, 255, 0.15);
+            border-color: rgba(145, 70, 255, 0.6);
+            box-shadow: 0 0 8px rgba(145, 70, 255, 0.3);
+            color: #e5c3ff;
+        }
+        /* 開台時長：警示紅光 */
+        .uptime-badge {
+            background: rgba(235, 4, 0, 0.15);
+            border-color: rgba(235, 4, 0, 0.6);
+            box-shadow: 0 0 8px rgba(235, 4, 0, 0.3);
+            color: #ffb3b2;
+        }
+
+        /* 懸浮快速換台選單 (Dropdown) */
+        #quick-switcher-menu {
+            position: absolute;
+            top: 55px; /* 貼齊按鈕下方 */
+            left: 15px;
+            width: 320px;
+            max-height: 70vh;
+            background-color: #18181b;
+            border: 1px solid #464649;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            overflow-y: auto;
+            z-index: 10001;
+            display: none; /* 預設隱藏 */
+            flex-direction: column;
         }
         
-        /* 實況主卡片網格系統 */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+        /* 下拉選單內的實況卡片 */
+        .mini-card {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #262629;
+            text-decoration: none;
+            color: #efeff1;
+            transition: background 0.2s;
         }
-        .stream-card {
-            background: #18181b;
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.2s;
-            border: 1px solid transparent;
-            text-decoration: none; /* 改成超連結後去除底線 */
-            color: inherit; /* 避免文字變成超連結的藍色 */
-            display: block;
-        }
-        .stream-card:hover {
-            transform: translateY(-5px);
-            border: 1px solid #9146FF;
-        }
-        .stream-card img {
-            width: 100%;
+        .mini-card:hover { background-color: #262629; border-left: 3px solid #9146FF; }
+        .mini-card img {
+            width: 80px;
+            border-radius: 4px;
+            margin-right: 12px;
             aspect-ratio: 16/9;
             object-fit: cover;
         }
-        .card-info { padding: 15px; }
-        .card-info h3 { margin-bottom: 5px; font-size: 18px; }
-        .card-info p { color: #adadb8; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        /* 遊戲標籤與觀看人數 */
-        .game-tag {
-            display: inline-block;
-            background-color: #3a3a3d;
-            color: #efeff1;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-top: 8px;
-            margin-right: 8px;
-        }
-        .viewer-count { color: #eb0400 !important; font-weight: bold; margin-top: 8px; display: inline-block;}
+        .mini-info { flex: 1; overflow: hidden; }
+        .mini-info h4 { font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mini-info p { font-size: 12px; color: #adadb8; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        .mini-viewers { font-size: 12px; color: #eb0400; font-weight: bold; }
 
-        /* 影片區塊 */
+        /* 登入畫面置中 */
+        #login-section { text-align: center; margin-top: 20vh; }
+
+        /* 影片與聊天室區塊 */
         #video-container {
             width: 100vw;
             height: calc(100vh - 60px);
             background-color: #000;
-            display: none;
             transition: height 0.3s ease;
         }
-        
-        /* 聊天室區塊 */
         #chat-container {
             width: 100vw;
-            height: 100vh;
+            height: calc(100vh - 60px); 
             border-top: 2px solid #9146FF;
             display: none;
         }
-
         iframe { width: 100%; height: 100%; border: none; }
-        .login-wrapper { text-align: center; margin-top: 15vh; }
+        
+        /* 捲軸美化 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #18181b; }
+        ::-webkit-scrollbar-thumb { background: #3a3a3d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555558; }
     </style>
 </head>
 <body>
 
-    <!-- 控制列 -->
+    <!-- 頂部控制列 -->
     <div id="controls">
-        <!-- ⭐ 把回首頁改成 <a> 標籤，擁有原生的 href="?" -->
-        <a href="?" id="home-btn" class="btn" onclick="handleHomeClick(event)">🏠 回首頁</a>
-        
-        <input type="text" id="channelInput" placeholder="直接輸入 ID 搜尋" onkeypress="handleEnter(event)">
-        
-        <!-- ⭐ 前往頻道按鈕：加上 onauxclick 監聽滑鼠中鍵 -->
-        <button class="btn" onclick="handleInputClick(event)" onauxclick="handleInputClick(event)">前往頻道</button>
-        
-        <button id="toggle-chat-btn" class="btn" onclick="toggleChat()" style="display: none;">💬 關閉聊天</button>
+        <div class="left-controls">
+            <button id="switcher-btn" class="btn" onclick="toggleSwitcher()">🔴 其他開台清單 ▾</button>
+            <button id="toggle-chat-btn" class="btn" onclick="toggleChat()" style="display: none;">💬 關閉聊天</button>
+        </div>
+
+        <div class="center-controls" id="stream-info-badges">
+            <span class="cool-badge game-badge" id="badge-game">🎮 載入中</span>
+            <span class="cool-badge uptime-badge" id="badge-uptime">⏱️ 計算中</span>
+        </div>
+
+        <div class="right-controls">
+            <span id="last-update-text">尚未更新</span>
+        </div>
+
+        <!-- 懸浮快速換台選單 -->
+        <div id="quick-switcher-menu"></div>
     </div>
 
-    <!-- 首頁 -->
-    <div id="home-screen">
-        <div class="login-wrapper" id="login-section">
-            <h2 style="margin-bottom: 20px;">需要授權才能讀取你的追隨名單</h2>
-            <button class="btn" onclick="loginTwitch()">連結 Twitch 帳號</button>
-        </div>
-        <div id="live-streams-grid" class="grid-container"></div>
+    <!-- 登入區塊 (未授權時顯示) -->
+    <div id="login-section">
+        <h2 style="margin-bottom: 20px;">Twitch 專屬直立儀表板</h2>
+        <p style="color: #adadb8; margin-bottom: 20px;">請先授權讀取追隨名單，才能啟用快速換台功能</p>
+        <button class="btn" id="switcher-btn" onclick="loginTwitch()">連結 Twitch 帳號</button>
     </div>
 
     <!-- 影片 -->
-    <div id="video-container">
+    <div id="video-container" style="display: none;">
         <iframe id="video-frame" src="" allowfullscreen="true"></iframe>
     </div>
 
@@ -175,8 +212,10 @@
 
         let accessToken = localStorage.getItem('twitch_token');
         let isChatVisible = true; 
+        let globalLiveStreams = []; // 儲存目前的開台資料
+        let currentStreamStartedAt = null; // 記錄目前觀看實況的開播時間
+        let uptimeInterval = null; // 計時器
 
-        // 檢查網址列是否帶有登入後回傳的 token
         const hash = window.location.hash;
         if (hash.includes('access_token=')) {
             accessToken = new URLSearchParams(hash.substring(1)).get('access_token');
@@ -184,31 +223,33 @@
             history.replaceState(null, '', window.location.pathname + window.location.search);
         }
 
-        // 程式啟動邏輯
+        // 啟動邏輯
         if (accessToken) {
             document.getElementById('login-section').style.display = 'none';
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetChannel = urlParams.get('channel');
-            
-            if (targetChannel) openChannel(targetChannel, true);
-            else fetchLiveStreams();
+            fetchLiveStreams().then(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetChannel = urlParams.get('channel');
+                if (targetChannel) {
+                    openChannel(targetChannel, true);
+                } else {
+                    // 如果沒有指定頻道，自動打開選單讓你選
+                    toggleSwitcher(true); 
+                }
+            });
         }
 
         function loginTwitch() {
-            if (CLIENT_ID === '這裡填入你的_CLIENT_ID') {
-                alert("請先在程式碼中填入你的 CLIENT_ID！");
-                return;
-            }
-            const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=user:read:follows`;
-            window.location.href = authUrl;
+            if (CLIENT_ID === '這裡填入你的_CLIENT_ID') return alert("請設定 CLIENT_ID！");
+            window.location.href = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=user:read:follows`;
         }
 
+        // 獲取實況資料
         async function fetchLiveStreams() {
             try {
                 const userRes = await fetch('https://api.twitch.tv/helix/users', {
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Client-Id': CLIENT_ID }
                 });
-                if (!userRes.ok) throw new Error('Token 可能過期了');
+                if (!userRes.ok) throw new Error('Token 錯誤');
                 const userData = await userRes.json();
                 const userId = userData.data[0].id;
 
@@ -216,95 +257,84 @@
                     headers: { 'Authorization': `Bearer ${accessToken}`, 'Client-Id': CLIENT_ID }
                 });
                 const streamsData = await streamsRes.json();
-                renderGrid(streamsData.data);
+                
+                globalLiveStreams = streamsData.data;
+                renderQuickSwitcher(globalLiveStreams);
+
+                // 更新右上角的視覺回饋時間
+                const now = new Date();
+                const timeString = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                document.getElementById('last-update-text').innerHTML = `🔄 最後更新於 ${timeString}`;
+                
+                // 如果目前正在看某台，順便刷新一下他的標籤資訊
+                updateCurrentStreamBadges();
+
             } catch (error) {
-                console.error("API 錯誤:", error);
+                console.error(error);
                 localStorage.removeItem('twitch_token');
                 document.getElementById('login-section').style.display = 'block';
-                document.getElementById('login-section').innerHTML += '<p style="color:red; margin-top:10px;">授權已過期，請重新登入</p>';
             }
         }
 
-        function renderGrid(streams) {
-            const grid = document.getElementById('live-streams-grid');
+        // 渲染下拉選單
+        function renderQuickSwitcher(streams) {
+            const menu = document.getElementById('quick-switcher-menu');
             if (!streams || streams.length === 0) {
-                grid.innerHTML = '<h3 style="grid-column: 1 / -1; text-align: center; color: #adadb8; margin-top: 50px;">目前沒有追隨的實況主在線上 😴</h3>';
+                menu.innerHTML = '<div style="padding: 20px; text-align: center; color: #adadb8;">目前沒有人開台 😴</div>';
                 return;
             }
 
             let html = '';
             streams.forEach(stream => {
-                const thumbnailUrl = stream.thumbnail_url.replace('{width}', '440').replace('{height}', '248');
-                // ⭐ 卡片改成 <a href="..."> 標籤
+                const thumbnailUrl = stream.thumbnail_url.replace('{width}', '160').replace('{height}', '90');
                 html += `
-                    <a href="?channel=${stream.user_login}" class="stream-card" onclick="handleCardClick(event, '${stream.user_login}')">
+                    <a href="?channel=${stream.user_login}" class="mini-card" onclick="handleCardClick(event, '${stream.user_login}')">
                         <img src="${thumbnailUrl}" alt="${stream.user_name}">
-                        <div class="card-info">
-                            <h3>${stream.user_name}</h3>
-                            <p>${stream.title}</p>
-                            <span class="game-tag">🎮 ${stream.game_name || 'Just Chatting'}</span>
-                            <span class="viewer-count">🔴 ${stream.viewer_count.toLocaleString()} 人正在觀看</span>
+                        <div class="mini-info">
+                            <h4>${stream.user_name}</h4>
+                            <p>${stream.game_name || 'Just Chatting'}</p>
+                            <span class="mini-viewers">🔴 ${stream.viewer_count.toLocaleString()}</span>
                         </div>
                     </a>
                 `;
             });
-            grid.innerHTML = html;
+            menu.innerHTML = html;
         }
 
-        // ==========================================
-        // ⭐ 新增：處理滑鼠左鍵/中鍵點擊的邏輯
-        // ==========================================
-
-        // 處理「回首頁」點擊
-        function handleHomeClick(e) {
-            // 如果按住 Ctrl/Cmd 或是按滑鼠中鍵 (button === 1)，放行給瀏覽器開新分頁
-            if (e.ctrlKey || e.metaKey || e.button === 1) return; 
-            
-            e.preventDefault(); // 攔截左鍵，不重新載入網頁
-            goHome();
+        // 開關下拉選單
+        function toggleSwitcher(forceOpen = false) {
+            const menu = document.getElementById('quick-switcher-menu');
+            if (forceOpen || menu.style.display === 'none' || menu.style.display === '') {
+                menu.style.display = 'flex';
+            } else {
+                menu.style.display = 'none';
+            }
         }
 
-        // 處理首頁「實況卡片」點擊
+        // 點擊網頁空白處自動關閉下拉選單
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('quick-switcher-menu');
+            const btn = document.getElementById('switcher-btn');
+            if (menu.style.display === 'flex' && !menu.contains(event.target) && event.target !== btn) {
+                menu.style.display = 'none';
+            }
+        });
+
         function handleCardClick(e, channel) {
             if (e.ctrlKey || e.metaKey || e.button === 1) return;
-            
             e.preventDefault();
             openChannel(channel);
         }
 
-        // 處理「前往頻道」點擊
-        function handleInputClick(e) {
-            const channel = document.getElementById('channelInput').value.trim().toLowerCase();
-            if (!channel) return;
-
-            // 確保如果是 auxclick 事件，必須是中鍵 (button === 1) 才觸發
-            if (e.type === 'auxclick' && e.button !== 1) return;
-
-            // 如果是中鍵或按住 Ctrl/Cmd
-            if (e.button === 1 || e.ctrlKey || e.metaKey) {
-                // 手動呼叫 window.open 開新分頁
-                window.open(window.location.pathname + "?channel=" + channel, '_blank');
-            } else {
-                openChannel(channel);
-            }
-        }
-
-        function handleEnter(e) {
-            if (e.key === 'Enter') {
-                const channel = document.getElementById('channelInput').value.trim().toLowerCase();
-                if (channel) openChannel(channel);
-            }
-        }
-
-        // ==========================================
-
         function openChannel(channel, isFromUrl = false) {
-            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('quick-switcher-menu').style.display = 'none'; // 關閉選單
             
             isChatVisible = true;
             document.getElementById('video-container').style.display = 'block';
-            document.getElementById('video-container').style.height = 'calc(100vh - 60px)';
+            document.getElementById('video-container').style.height = '60vh'; // 預設 60% 高度
             document.getElementById('chat-container').style.display = 'block';
+            document.getElementById('chat-container').style.height = '40vh'; // 聊天室 40% 高度
             
             const toggleBtn = document.getElementById('toggle-chat-btn');
             toggleBtn.style.display = 'block';
@@ -316,11 +346,56 @@
             document.title = `${channel} | Twitch 直立觀看台`;
 
             if (!isFromUrl) {
-                const newUrl = window.location.pathname + "?channel=" + channel;
-                history.pushState(null, '', newUrl);
+                history.pushState(null, '', window.location.pathname + "?channel=" + channel);
             }
             
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // 更新並顯示中間的酷炫標籤
+            document.getElementById('stream-info-badges').style.opacity = '1';
+            updateCurrentStreamBadges();
+        }
+
+        // 更新酷炫標籤資訊 (開播時間與分類)
+        function updateCurrentStreamBadges() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const channel = urlParams.get('channel');
+            if (!channel) return;
+
+            // 從 globalLiveStreams 尋找該頻道的資料
+            const streamData = globalLiveStreams.find(s => s.user_login.toLowerCase() === channel.toLowerCase());
+            
+            const badgeGame = document.getElementById('badge-game');
+            const badgeUptime = document.getElementById('badge-uptime');
+
+            if (streamData) {
+                badgeGame.innerText = `🎮 ${streamData.game_name || '無分類'}`;
+                currentStreamStartedAt = new Date(streamData.started_at);
+                calculateUptime(); // 立刻算一次
+                
+                // 設定每秒更新一次開台時間
+                if(uptimeInterval) clearInterval(uptimeInterval);
+                uptimeInterval = setInterval(calculateUptime, 60000); // 每分鐘更新
+            } else {
+                badgeGame.innerText = `🎮 隱藏或離線`;
+                badgeUptime.innerText = `⏱️ 未知`;
+                if(uptimeInterval) clearInterval(uptimeInterval);
+            }
+        }
+
+        // 計算開播時長
+        function calculateUptime() {
+            if (!currentStreamStartedAt) return;
+            const now = new Date();
+            const diffMs = now - currentStreamStartedAt;
+            const diffMins = Math.floor(diffMs / 60000);
+            const hours = Math.floor(diffMins / 60);
+            const mins = diffMins % 60;
+            
+            const badgeUptime = document.getElementById('badge-uptime');
+            if (hours > 0) {
+                badgeUptime.innerText = `⏱️ 已開播 ${hours} 小時 ${mins} 分`;
+            } else {
+                badgeUptime.innerText = `⏱️ 已開播 ${mins} 分鐘`;
+            }
         }
 
         function toggleChat() {
@@ -331,47 +406,29 @@
 
             if (isChatVisible) {
                 chatContainer.style.display = 'block';
-                videoContainer.style.height = 'calc(100vh - 60px)'; 
+                videoContainer.style.height = '60vh'; 
                 toggleBtn.innerText = '💬 關閉聊天';
             } else {
                 chatContainer.style.display = 'none';
-                videoContainer.style.height = '100vh'; 
+                videoContainer.style.height = 'calc(100vh - 60px)'; // 關閉聊天室時，影片補滿下方空間
                 toggleBtn.innerText = '💬 開啟聊天';
             }
         }
 
-        function goHome(isFromBrowserBack = false) {
-            document.getElementById('home-screen').style.display = 'block';
-            document.getElementById('video-container').style.display = 'none';
-            document.getElementById('chat-container').style.display = 'none';
-            document.getElementById('toggle-chat-btn').style.display = 'none'; 
-            
-            document.getElementById('video-frame').src = '';
-            document.getElementById('chat-frame').src = '';
-            
-            document.title = 'Twitch 直立觀看台 (首頁儀表板版)';
-
-            if (!isFromBrowserBack) {
-                history.pushState(null, '', window.location.pathname);
-            }
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            if (accessToken) fetchLiveStreams();
-        }
-
+        // 支援瀏覽器上一頁/下一頁
         window.addEventListener('popstate', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const channel = urlParams.get('channel');
             if (channel) openChannel(channel, true);
-            else goHome(true);
         });
 
+        // 首頁背景自動更新 (每 3 分鐘)
         setInterval(() => {
-            if (document.getElementById('home-screen').style.display !== 'none' && accessToken) {
-                console.log('自動更新追隨名單...');
+            if (accessToken) {
                 fetchLiveStreams();
             }
         }, 3 * 60 * 1000); 
+
     </script>
 </body>
 </html>
