@@ -16,7 +16,7 @@
             scroll-behavior: smooth;
         }
 
-        /* 頂部控制列 (加入吸頂效果，並修正換行問題) */
+        /* 頂部控制列 (加入吸頂效果，絕對不換行) */
         #controls {
             display: flex;
             justify-content: space-between;
@@ -28,12 +28,12 @@
             position: sticky; 
             top: 0;
             z-index: 10000;
-            flex-wrap: nowrap; /* 強制絕對不換行 */
-            overflow-x: auto; /* 如果螢幕真的太窄，允許左右滑動而非擠壓變形 */
+            flex-wrap: nowrap; 
+            overflow-x: auto; 
         }
-        #controls::-webkit-scrollbar { display: none; } /* 隱藏控制列的捲軸 */
+        #controls::-webkit-scrollbar { display: none; } 
 
-        /* 將控制列分為左、中、右三個區塊 */
+        /* 將控制列分為左、中、右三個區塊，完美置中對齊 */
         .left-controls { display: flex; gap: 10px; flex: 1; align-items: center; white-space: nowrap; }
         .center-controls { display: flex; gap: 15px; flex: 2; justify-content: center; align-items: center; white-space: nowrap; }
         .right-controls { display: flex; gap: 10px; flex: 1; justify-content: flex-end; align-items: center; white-space: nowrap; }
@@ -52,7 +52,7 @@
             text-decoration: none; 
             transition: background-color 0.2s;
             line-height: normal;
-            white-space: nowrap; /* 按鈕文字不換行 */
+            white-space: nowrap; 
         }
         .btn:hover { background-color: #a970ff; }
         
@@ -74,14 +74,12 @@
             white-space: nowrap;
             border: 1px solid;
         }
-        /* 遊戲分類：科技紫光 */
         .game-badge {
             background: rgba(145, 70, 255, 0.15);
             border-color: rgba(145, 70, 255, 0.6);
             box-shadow: 0 0 8px rgba(145, 70, 255, 0.3);
             color: #e5c3ff;
         }
-        /* 開台時長：警示紅光 */
         .uptime-badge {
             background: rgba(235, 4, 0, 0.15);
             border-color: rgba(235, 4, 0, 0.6);
@@ -93,7 +91,7 @@
         #quick-switcher-menu {
             position: absolute;
             top: 60px; 
-            left: 100px; /* 大致對齊「其他開台」按鈕下方 */
+            left: 100px; 
             width: 300px;
             max-height: 60vh;
             background-color: #18181b;
@@ -122,35 +120,15 @@
         .mini-viewers { font-size: 12px; color: #eb0400; font-weight: bold; }
 
         /* 首頁最後更新時間文字 */
-        #last-update-text {
-            font-size: 13px;
-            color: #adadb8;
-        }
+        #last-update-text { font-size: 13px; color: #adadb8; }
 
         /* 首頁追隨列表區塊 */
-        #home-screen {
-            width: 100vw;
-            min-height: calc(100vh - 60px);
-            padding: 30px;
-            display: block; 
-        }
-        
-        /* 實況主卡片網格系統 */
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
+        #home-screen { width: 100vw; min-height: calc(100vh - 60px); padding: 30px; display: block; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         .stream-card {
-            background: #18181b;
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.2s;
-            border: 1px solid transparent;
-            text-decoration: none; 
-            color: inherit; 
-            display: block;
+            background: #18181b; border-radius: 8px; overflow: hidden; cursor: pointer;
+            transition: transform 0.2s; border: 1px solid transparent; text-decoration: none; 
+            color: inherit; display: block;
         }
         .stream-card:hover { transform: translateY(-5px); border: 1px solid #9146FF; }
         .stream-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
@@ -171,22 +149,24 @@
 
     <!-- 控制列 -->
     <div id="controls">
-        <!-- 左側：回首頁 & 其他開台清單 & 關閉聊天 -->
+        <!-- 左側：回首頁 & 其他開台清單 -->
         <div class="left-controls">
             <a href="?" id="home-btn" class="btn" onclick="handleHomeClick(event)">🏠 回首頁</a>
-            <button id="switcher-btn" class="btn" onclick="toggleSwitcher()" style="display: none;">🔴 其他開台清單 ▾</button>
-            <button id="toggle-chat-btn" class="btn" onclick="toggleChat()" style="display: none;">💬 關閉聊天</button>
+            <!-- 加上 event 參數，讓 JS 可以攔截點擊事件 -->
+            <button id="switcher-btn" class="btn" onclick="toggleSwitcher(event)" style="display: none;">🔴 其他開台清單 ▾</button>
         </div>
 
-        <!-- 中間：酷炫字卡 (僅在實況畫面顯示) -->
+        <!-- 中間：酷炫字卡 (僅在實況畫面顯示，會自動置中) -->
         <div class="center-controls" id="stream-info-badges" style="display: none;">
             <span class="cool-badge game-badge" id="badge-game">🎮 載入中</span>
             <span class="cool-badge uptime-badge" id="badge-uptime">⏱️ 計算中</span>
         </div>
 
-        <!-- 右側：最後更新時間 (僅在首頁顯示) -->
-        <div class="right-controls" id="update-time-container">
+        <!-- 右側：最後更新時間 OR 關閉聊天按鈕 -->
+        <div class="right-controls">
             <span id="last-update-text">🔄 尚未更新</span>
+            <!-- 把關閉聊天按鈕移到這裡 -->
+            <button id="toggle-chat-btn" class="btn" onclick="toggleChat()" style="display: none;">💬 關閉聊天</button>
         </div>
 
         <!-- 懸浮快速換台選單 -->
@@ -221,12 +201,10 @@
         let accessToken = localStorage.getItem('twitch_token');
         let isChatVisible = true; 
         
-        // 用來計算時長與切換選單的變數
         let globalLiveStreams = []; 
         let currentStreamStartedAt = null; 
         let uptimeInterval = null; 
 
-        // 檢查網址列是否帶有登入後回傳的 token
         const hash = window.location.hash;
         if (hash.includes('access_token=')) {
             accessToken = new URLSearchParams(hash.substring(1)).get('access_token');
@@ -234,7 +212,6 @@
             history.replaceState(null, '', window.location.pathname + window.location.search);
         }
 
-        // 程式啟動邏輯
         if (accessToken) {
             document.getElementById('login-section').style.display = 'none';
             const urlParams = new URLSearchParams(window.location.search);
@@ -265,17 +242,15 @@
                 });
                 const streamsData = await streamsRes.json();
                 
-                globalLiveStreams = streamsData.data; // 儲存下來給計算時長使用
+                globalLiveStreams = streamsData.data; 
                 
                 renderGrid(globalLiveStreams);
                 renderQuickSwitcher(globalLiveStreams);
                 
-                // 更新首頁右上角時間
                 const now = new Date();
                 const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
                 document.getElementById('last-update-text').innerText = `🔄 最後更新於 ${timeStr}`;
 
-                // 如果正在看實況，同步刷新上方字卡
                 if (document.getElementById('video-container').style.display === 'block') {
                     updateCurrentStreamBadges();
                 }
@@ -312,7 +287,6 @@
             grid.innerHTML = html;
         }
 
-        // 渲染下拉選單
         function renderQuickSwitcher(streams) {
             const menu = document.getElementById('quick-switcher-menu');
             if (!streams || streams.length === 0) {
@@ -337,8 +311,13 @@
             menu.innerHTML = html;
         }
 
-        // 開關下拉選單
-        function toggleSwitcher() {
+        // ==========================================
+        // ⭐ 修復：下拉選單點擊無反應的問題
+        // ==========================================
+        function toggleSwitcher(event) {
+            // 阻擋事件冒泡，防止觸發 document 的點擊隱藏邏輯
+            if(event) event.stopPropagation(); 
+            
             const menu = document.getElementById('quick-switcher-menu');
             if (menu.style.display === 'none' || menu.style.display === '') {
                 menu.style.display = 'flex';
@@ -347,12 +326,15 @@
             }
         }
 
-        // 點擊空白處關閉選單
+        // 點擊空白處關閉選單 (防呆機制)
         document.addEventListener('click', function(event) {
             const menu = document.getElementById('quick-switcher-menu');
             const btn = document.getElementById('switcher-btn');
-            if (menu.style.display === 'flex' && !menu.contains(event.target) && event.target !== btn) {
-                menu.style.display = 'none';
+            // 確保點擊的不是按鈕也不是選單內部，才關閉選單
+            if (menu && btn && menu.style.display === 'flex') {
+                if (!menu.contains(event.target) && !btn.contains(event.target)) {
+                    menu.style.display = 'none';
+                }
             }
         });
 
@@ -375,12 +357,15 @@
 
         function openChannel(channel, isFromUrl = false) {
             document.getElementById('home-screen').style.display = 'none';
-            document.getElementById('quick-switcher-menu').style.display = 'none'; // 切換頻道時自動關閉選單
+            document.getElementById('quick-switcher-menu').style.display = 'none'; 
             
-            // 介面顯示切換
+            // ⭐ 介面顯示切換邏輯
             document.getElementById('switcher-btn').style.display = 'block';
             document.getElementById('stream-info-badges').style.display = 'flex';
-            document.getElementById('update-time-container').style.display = 'none'; // 隱藏首頁更新時間
+            
+            // 隱藏「更新時間」，顯示「關閉聊天」按鈕 (完美放置在右側)
+            document.getElementById('last-update-text').style.display = 'none'; 
+            document.getElementById('toggle-chat-btn').style.display = 'block';
             
             isChatVisible = true;
             document.getElementById('video-container').style.display = 'block';
@@ -388,7 +373,6 @@
             document.getElementById('chat-container').style.display = 'block';
             
             const toggleBtn = document.getElementById('toggle-chat-btn');
-            toggleBtn.style.display = 'block';
             toggleBtn.innerText = '💬 關閉聊天';
 
             document.getElementById('video-frame').src = `https://player.twitch.tv/?channel=${channel}&parent=winsyi531.github.io`;
@@ -420,7 +404,7 @@
                 calculateUptime(); 
                 
                 if(uptimeInterval) clearInterval(uptimeInterval);
-                uptimeInterval = setInterval(calculateUptime, 60000); // 每分鐘推進計算
+                uptimeInterval = setInterval(calculateUptime, 60000); 
             } else {
                 badgeGame.innerText = `🎮 隱藏或未開台`;
                 badgeUptime.innerText = `⏱️ 未知`;
@@ -466,12 +450,15 @@
             document.getElementById('video-container').style.display = 'none';
             document.getElementById('chat-container').style.display = 'none';
             
-            // 介面還原
+            // ⭐ 介面還原邏輯
             document.getElementById('switcher-btn').style.display = 'none';
-            document.getElementById('toggle-chat-btn').style.display = 'none'; 
             document.getElementById('stream-info-badges').style.display = 'none';
             document.getElementById('quick-switcher-menu').style.display = 'none';
-            document.getElementById('update-time-container').style.display = 'flex'; // 顯示首頁更新時間
+            
+            // 顯示「更新時間」，隱藏「關閉聊天」按鈕
+            document.getElementById('last-update-text').style.display = 'inline-block';
+            document.getElementById('toggle-chat-btn').style.display = 'none'; 
+            
             if (uptimeInterval) clearInterval(uptimeInterval);
             
             document.getElementById('video-frame').src = '';
@@ -494,7 +481,6 @@
             else goHome(true);
         });
 
-        // 首頁背景自動更新
         setInterval(() => {
             if (accessToken) {
                 console.log('自動更新追隨名單...');
