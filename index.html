@@ -154,8 +154,9 @@
             width: 350px; 
             max-width: 85vw; 
             height: calc(100vh - 60px); 
-            background-color: #0e0e10;
+            background-color: rgba(24, 24, 27, 0.7); 
             border-left: 1px solid #303032;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.8); 
             z-index: 9999;
             transform: translateX(100%); 
             transition: transform 0.3s ease-in-out; 
@@ -383,8 +384,7 @@
             
             document.getElementById('toggle-chat-btn').innerHTML = '<i class="ph-fill ph-chat-teardrop-text"></i> 開啟聊天';
             document.getElementById('video-frame').src = `https://player.twitch.tv/?channel=${channel}&parent=winsyi531.github.io`;
-            // 在 openChannel 函式中修改這一行
-document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io`;
+            document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io&darkpopout`;
             
             const streamData = globalLiveStreams.find(s => s.user_login.toLowerCase() === channel.toLowerCase());
             document.title = `${streamData ? streamData.user_name : channel} | Twitch 直立觀看台`;
