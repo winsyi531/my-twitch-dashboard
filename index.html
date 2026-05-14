@@ -383,7 +383,8 @@
             
             document.getElementById('toggle-chat-btn').innerHTML = '<i class="ph-fill ph-chat-teardrop-text"></i> 開啟聊天';
             document.getElementById('video-frame').src = `https://player.twitch.tv/?channel=${channel}&parent=winsyi531.github.io`;
-            document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io&darkpopout`;
+            // 在 openChannel 函式中修改這一行
+document.getElementById('chat-frame').src = `https://www.twitch.tv/embed/${channel}/chat?parent=winsyi531.github.io`;
             
             const streamData = globalLiveStreams.find(s => s.user_login.toLowerCase() === channel.toLowerCase());
             document.title = `${streamData ? streamData.user_name : channel} | Twitch 直立觀看台`;
